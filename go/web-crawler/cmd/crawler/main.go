@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"web-crawler/internal/dedupe"
 	"web-crawler/internal/engine"
 	"web-crawler/internal/fetcher"
 	"web-crawler/internal/frontier"
@@ -10,27 +11,22 @@ import (
 )
 
 func main() {
-
 	if len(os.Args) < 2 {
-
-		if len(os.Args) < 2 {
-			fmt.Println("usage: crawler <url>")
-			os.Exit(1)
-		}
+		fmt.Println("usage: crawler <url1> <url2> ...")
+		os.Exit(1)
 	}
-
-	seedUrl := os.Args[1]
 
 	httpFetcher := fetcher.NewHTTPFetcher()
 	fifoFrontier := frontier.NewFIFO()
+	memoryDeduper := dedupe.NewMemory()
 
 	for _, url := range os.Args[1:] {
 		fifoFrontier.Push(model.CrawlRequest{URL: url})
 	}
 
-	crawlEnginer := engine.New(httpFetcher)
+	crawlEngine := engine.New(httpFetcher, fifoFrontier, memoryDeduper)
 
-	if err := crawlEnginer.Run(seedUrl); err != nil {
+	if err := crawlEngine.Run(); err != nil {
 		fmt.Println("crawl error:", err)
 		os.Exit(1)
 	}

@@ -2,34 +2,47 @@ package engine
 
 import (
 	"fmt"
+	"web-crawler/internal/dedupe"
 	"web-crawler/internal/fetcher"
-	"web-crawler/internal/model"
+	"web-crawler/internal/frontier"
 )
 
 type Engine struct {
-	fetcher fetcher.Fetcher
+	fetcher  fetcher.Fetcher
+	frontier frontier.Frontier
+	deduper  dedupe.Deduper
 }
 
-func New(fetcher fetcher.Fetcher) *Engine {
+func New(fetcher fetcher.Fetcher, frontier frontier.Frontier, deduper dedupe.Deduper) *Engine {
 	return &Engine{
-		fetcher: fetcher,
+		fetcher:  fetcher,
+		frontier: frontier,
+		deduper:  deduper,
 	}
 }
 
-func (e *Engine) Run(seedUrl string) error {
+func (e *Engine) Run() error {
+	for {
+		req, ok := e.frontier.Pop()
+		if !ok {
+			return nil
+		}
 
-	req := model.CrawlRequest{
-		URL: seedUrl,
+		if e.deduper.Seen(req) {
+			fmt.Println("skipping already seen URL:", req.URL)
+			continue
+		}
+
+		e.deduper.Mark(req)
+
+		result, err := e.fetcher.Fetch(req)
+		if err != nil {
+			fmt.Println("fetch error:", err)
+			continue
+		}
+
+		fmt.Printf("URL: %s\n", result.URL)
+		fmt.Printf("Status: %d\n", result.StatusCode)
+		fmt.Printf("Bytes: %d\n\n", len(result.Body))
 	}
-
-	result, err := e.fetcher.Fetch(req)
-	if  err != nil  {
-		return err
-	}
-
-	fmt.Printf("URL: %s\n", result.URL)
-	fmt.Printf("Status: %d\n", result.StatusCode)
-	fmt.Printf("Bytes: %d\n", len(result.Body))
-
-	return  nil
 }
