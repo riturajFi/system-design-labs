@@ -10,6 +10,7 @@ import (
 	"web-crawler/internal/model"
 	"web-crawler/internal/parser"
 	"web-crawler/internal/priority"
+	"web-crawler/internal/robots"
 )
 
 const workerCount = 4
@@ -22,6 +23,8 @@ type Engine struct {
 	filter   filter.Filter
 	// prioritizer assigns priority before enqueueing new work.
 	prioritizer priority.Prioritizer
+	// robots enforces per-host robots.txt policy.
+	robots robots.Policy
 }
 
 func New(
@@ -31,6 +34,7 @@ func New(
 	parser parser.Parser,
 	flt filter.Filter,
 	prioritizer priority.Prioritizer,
+	robotsPolicy robots.Policy,
 ) *Engine {
 	return &Engine{
 		fetcher:     fetcher,
@@ -39,6 +43,7 @@ func New(
 		parser:      parser,
 		filter:      flt,
 		prioritizer: prioritizer,
+		robots:      robotsPolicy,
 	}
 }
 
@@ -77,6 +82,13 @@ func (e *Engine) Run() error {
 
 func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 	for req := range workCh {
+		// Enforce robots.txt policy before any fetch.
+		if !e.robots.Allowed(req) {
+			fmt.Printf("[worker %d] robots.txt blocked %s\n", id, req.URL)
+			e.frontier.Done(req)
+			continue
+		}
+
 		result, err := e.fetcher.Fetch(req)
 		if err != nil {
 			fmt.Printf("[worker %d] fetch error: %v\n", id, err)

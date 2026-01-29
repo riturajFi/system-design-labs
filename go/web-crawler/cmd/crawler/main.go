@@ -11,6 +11,7 @@ import (
 	"web-crawler/internal/model"
 	"web-crawler/internal/parser"
 	"web-crawler/internal/priority"
+	"web-crawler/internal/robots"
 )
 
 func main() {
@@ -26,6 +27,8 @@ func main() {
 	htmlParser := parser.NewHTMLParser()
 	basicFilter := filter.NewBasicFilter()
 	prioritizer := priority.NewSimple()
+	// Cached robots.txt policy keeps per-host decisions local and reusable.
+	robotsPolicy := robots.NewCached()
 
 	for _, url := range os.Args[1:] {
 		// Seed URLs default to low priority before assignment.
@@ -41,6 +44,7 @@ func main() {
 		htmlParser,
 		basicFilter,
 		prioritizer,
+		robotsPolicy,
 	)
 
 	if err := crawlEngine.Run(); err != nil {
