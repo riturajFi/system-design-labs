@@ -5,6 +5,8 @@ import (
 	"os"
 	"web-crawler/internal/engine"
 	"web-crawler/internal/fetcher"
+	"web-crawler/internal/frontier"
+	"web-crawler/internal/model"
 )
 
 func main() {
@@ -20,6 +22,12 @@ func main() {
 	seedUrl := os.Args[1]
 
 	httpFetcher := fetcher.NewHTTPFetcher()
+	fifoFrontier := frontier.NewFIFO()
+
+	for _, url := range os.Args[1:] {
+		fifoFrontier.Push(model.CrawlRequest{URL: url})
+	}
+
 	crawlEnginer := engine.New(httpFetcher)
 
 	if err := crawlEnginer.Run(seedUrl); err != nil {
