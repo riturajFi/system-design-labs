@@ -6,6 +6,7 @@ import (
 	"web-crawler/internal/dedupe"
 	"web-crawler/internal/engine"
 	"web-crawler/internal/fetcher"
+	"web-crawler/internal/filter"
 	"web-crawler/internal/frontier"
 	"web-crawler/internal/model"
 	"web-crawler/internal/parser"
@@ -21,6 +22,7 @@ func main() {
 	fifoFrontier := frontier.NewFIFO()
 	memoryDeduper := dedupe.NewMemory()
 	htmlParser := parser.NewHTMLParser()
+	basicFilter := filter.NewBasicFilter()
 
 	for _, url := range os.Args[1:] {
 		fifoFrontier.Push(model.CrawlRequest{URL: url})
@@ -31,6 +33,7 @@ func main() {
 		fifoFrontier,
 		memoryDeduper,
 		htmlParser,
+		basicFilter,
 	)
 
 	if err := crawlEngine.Run(); err != nil {

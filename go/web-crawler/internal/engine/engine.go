@@ -2,17 +2,23 @@ package engine
 
 import (
 	"fmt"
+	"sync"
 	"web-crawler/internal/dedupe"
 	"web-crawler/internal/fetcher"
+	"web-crawler/internal/filter"
 	"web-crawler/internal/frontier"
+	"web-crawler/internal/model"
 	"web-crawler/internal/parser"
 )
+
+const workerCount = 4
 
 type Engine struct {
 	fetcher  fetcher.Fetcher
 	frontier frontier.Frontier
 	deduper  dedupe.Deduper
 	parser   parser.Parser
+	filter   filter.Filter
 }
 
 func New(
@@ -20,20 +26,36 @@ func New(
 	frontier frontier.Frontier,
 	deduper dedupe.Deduper,
 	parser parser.Parser,
+	flt filter.Filter,
 ) *Engine {
 	return &Engine{
 		fetcher:  fetcher,
 		frontier: frontier,
 		deduper:  deduper,
 		parser:   parser,
+		filter:   flt,
 	}
 }
 
 func (e *Engine) Run() error {
+	workCh := make(chan model.CrawlRequest)
+	var wg sync.WaitGroup
+
+	// Start workers
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			e.worker(id, workCh)
+		}(i)
+	}
+
+	// Dispatcher loop (single-threaded)
 	for {
 		req, ok := e.frontier.Pop()
 		if !ok {
-			return nil
+			close(workCh)
+			break
 		}
 
 		if e.deduper.Seen(req) {
@@ -41,22 +63,33 @@ func (e *Engine) Run() error {
 		}
 
 		e.deduper.Mark(req)
+		workCh <- req
+	}
 
+	wg.Wait()
+	return nil
+}
+
+func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
+	for req := range workCh {
 		result, err := e.fetcher.Fetch(req)
 		if err != nil {
-			fmt.Println("fetch error:", err)
+			fmt.Printf("[worker %d] fetch error: %v\n", id, err)
 			continue
 		}
 
-		fmt.Printf("Fetched: %s (%d bytes)\n", result.URL, len(result.Body))
+		fmt.Printf("[worker %d] fetched %s (%d bytes)\n", id, result.URL, len(result.Body))
 
 		children, err := e.parser.Parse(result.URL, result.Body)
 		if err != nil {
-			fmt.Println("parse error:", err)
+			fmt.Printf("[worker %d] parse error: %v\n", id, err)
 			continue
 		}
 
 		for _, child := range children {
+			if !e.filter.Allow(child) {
+				continue
+			}
 			e.frontier.Push(child)
 		}
 	}
