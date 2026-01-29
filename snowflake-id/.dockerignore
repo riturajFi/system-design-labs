@@ -1,0 +1,5 @@
+bin/
+.git/
+.vscode/
+**/*.md
+**/*_test.go
