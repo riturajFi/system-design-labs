@@ -13,6 +13,7 @@ type PoliteFrontier struct {
 	hostOrder []string
 }
 
+// NewPolite constructs a per-host scheduler that enforces one in-flight request per host.
 func NewPolite() *PoliteFrontier {
 	return &PoliteFrontier{
 		queues:   make(map[string][]model.CrawlRequest),
@@ -20,6 +21,7 @@ func NewPolite() *PoliteFrontier {
 	}
 }
 
+// Push enqueues a request into its host-specific FIFO queue.
 func (p *PoliteFrontier) Push(req model.CrawlRequest) {
 	u, err := url.Parse(req.URL)
 	if err != nil || u.Host == "" {
@@ -36,6 +38,7 @@ func (p *PoliteFrontier) Push(req model.CrawlRequest) {
 	p.queues[u.Host] = append(p.queues[u.Host], req)
 }
 
+// Pop selects the next available host (round-robin order) that is not in-flight.
 func (p *PoliteFrontier) Pop() (model.CrawlRequest, bool) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
@@ -59,6 +62,7 @@ func (p *PoliteFrontier) Pop() (model.CrawlRequest, bool) {
 	return model.CrawlRequest{}, false
 }
 
+// Done marks a host as no longer in-flight after a request finishes.
 func (p *PoliteFrontier) Done(req model.CrawlRequest) {
 	u, err := url.Parse(req.URL)
 	if err != nil || u.Host == "" {
@@ -70,6 +74,7 @@ func (p *PoliteFrontier) Done(req model.CrawlRequest) {
 	p.inFlight[u.Host] = false
 }
 
+// Len returns the total number of queued (not in-flight) requests across all hosts.
 func (p *PoliteFrontier) Len() int {
 	p.mu.Lock()
 	defer p.mu.Unlock()

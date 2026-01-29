@@ -19,6 +19,7 @@ func main() {
 	}
 
 	httpFetcher := fetcher.NewHTTPFetcher()
+	// Polite frontier enforces one in-flight request per host.
 	politeFrontier := frontier.NewPolite()
 	memoryDeduper := dedupe.NewMemory()
 	htmlParser := parser.NewHTMLParser()

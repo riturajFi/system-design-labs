@@ -75,6 +75,7 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 		result, err := e.fetcher.Fetch(req)
 		if err != nil {
 			fmt.Printf("[worker %d] fetch error: %v\n", id, err)
+			// Always release the host slot on failure.
 			e.frontier.Done(req)
 			continue
 		}
@@ -84,6 +85,7 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 		children, err := e.parser.Parse(result.URL, result.Body)
 		if err != nil {
 			fmt.Printf("[worker %d] parse error: %v\n", id, err)
+			// Parsing failure still completes the request lifecycle.
 			e.frontier.Done(req)
 			continue
 		}
@@ -95,6 +97,7 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 			e.frontier.Push(child)
 		}
 
+		// Notify frontier that this request is fully processed.
 		e.frontier.Done(req)
 	}
 }

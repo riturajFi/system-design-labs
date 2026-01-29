@@ -41,5 +41,6 @@ func (f *FIFOFrontier) Len() int {
 	return len(f.queue)
 }
 
+// Done is a no-op for FIFO; no per-host tracking is needed.
 func (f *FIFOFrontier) Done(req model.CrawlRequest) {
 }
