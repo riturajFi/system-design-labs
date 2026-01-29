@@ -9,6 +9,7 @@ import (
 	"web-crawler/internal/frontier"
 	"web-crawler/internal/model"
 	"web-crawler/internal/parser"
+	"web-crawler/internal/priority"
 )
 
 const workerCount = 4
@@ -19,6 +20,8 @@ type Engine struct {
 	deduper  dedupe.Deduper
 	parser   parser.Parser
 	filter   filter.Filter
+	// prioritizer assigns priority before enqueueing new work.
+	prioritizer priority.Prioritizer
 }
 
 func New(
@@ -27,13 +30,15 @@ func New(
 	deduper dedupe.Deduper,
 	parser parser.Parser,
 	flt filter.Filter,
+	prioritizer priority.Prioritizer,
 ) *Engine {
 	return &Engine{
-		fetcher:  fetcher,
-		frontier: frontier,
-		deduper:  deduper,
-		parser:   parser,
-		filter:   flt,
+		fetcher:     fetcher,
+		frontier:    frontier,
+		deduper:     deduper,
+		parser:      parser,
+		filter:      flt,
+		prioritizer: prioritizer,
 	}
 }
 
@@ -94,6 +99,8 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 			if !e.filter.Allow(child) {
 				continue
 			}
+			// Assign priority before enqueuing into the frontier.
+			child = e.prioritizer.Assign(child)
 			e.frontier.Push(child)
 		}
 

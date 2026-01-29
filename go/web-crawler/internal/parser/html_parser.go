@@ -37,8 +37,10 @@ func (p *HTMLParser) Parse(baseURL string, body []byte) ([]model.CrawlRequest, e
 						continue
 					}
 					abs := base.ResolveReference(u)
+					// Default to low priority; prioritizer can override later.
 					results = append(results, model.CrawlRequest{
-						URL: abs.String(),
+						URL:      abs.String(),
+						Priority: model.PriorityLow,
 					})
 				}
 			}
