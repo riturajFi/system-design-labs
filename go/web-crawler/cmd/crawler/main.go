@@ -19,18 +19,18 @@ func main() {
 	}
 
 	httpFetcher := fetcher.NewHTTPFetcher()
-	fifoFrontier := frontier.NewFIFO()
+	politeFrontier := frontier.NewPolite()
 	memoryDeduper := dedupe.NewMemory()
 	htmlParser := parser.NewHTMLParser()
 	basicFilter := filter.NewBasicFilter()
 
 	for _, url := range os.Args[1:] {
-		fifoFrontier.Push(model.CrawlRequest{URL: url})
+		politeFrontier.Push(model.CrawlRequest{URL: url})
 	}
 
 	crawlEngine := engine.New(
 		httpFetcher,
-		fifoFrontier,
+		politeFrontier,
 		memoryDeduper,
 		htmlParser,
 		basicFilter,

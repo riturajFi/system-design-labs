@@ -40,3 +40,6 @@ func (f *FIFOFrontier) Len() int {
 	defer f.mu.Unlock()
 	return len(f.queue)
 }
+
+func (f *FIFOFrontier) Done(req model.CrawlRequest) {
+}

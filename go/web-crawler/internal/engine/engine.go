@@ -75,6 +75,7 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 		result, err := e.fetcher.Fetch(req)
 		if err != nil {
 			fmt.Printf("[worker %d] fetch error: %v\n", id, err)
+			e.frontier.Done(req)
 			continue
 		}
 
@@ -83,6 +84,7 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 		children, err := e.parser.Parse(result.URL, result.Body)
 		if err != nil {
 			fmt.Printf("[worker %d] parse error: %v\n", id, err)
+			e.frontier.Done(req)
 			continue
 		}
 
@@ -92,5 +94,7 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 			}
 			e.frontier.Push(child)
 		}
+
+		e.frontier.Done(req)
 	}
 }
