@@ -1,44 +1,47 @@
-# system-design-labs
+# 🧪 system-design-labs
 
-Hands-on implementations of real-world system design problems in **Go** and **Rust**.
-This repository focuses on building **production-oriented backend and distributed systems** from first principles, with emphasis on correctness, concurrency, failure handling, and observability.
+**Real systems. Real code. Real trade-offs.**
 
----
-
-## Goals
-
-* Convert system design concepts into **working code**
-* Understand **trade-offs**, not just final architectures
-* Practice **incremental design → implementation**
-* Build intuition for **scalability, reliability, and performance**
-
-This is **not** an interview cheat sheet. Every project is executable, testable, and stress-tested where applicable.
+🚀 Hands-on implementations of real-world system design problems in **Go** and **Rust**.
+This repo focuses on building **production-oriented backend and distributed systems** from first principles — no diagrams without code, no theory without execution.
 
 ---
 
-## What You’ll Find Here
+## 🎯 Why This Repo Exists
 
-Each system is implemented as an independent module and typically includes:
+* 🔧 Turn system design ideas into **running systems**
+* ⚖️ Expose **engineering trade-offs**, not just clean architectures
+* 🧩 Practice **step-by-step design → implementation**
+* 📈 Build intuition for **scale, reliability, and performance under load**
 
-* Problem statement & requirements
-* Core design decisions and assumptions
-* Go and/or Rust implementation
-* Concurrency and synchronization logic
-* Basic tests and load/stress scenarios
-* Notes on limitations and next improvements
-
-Example systems:
-
-* ID generators
-* URL shorteners
-* Rate limiters
-* Job queues
-* Web crawlers
-* Caching layers
+❌ Not an interview cheat sheet.
+✅ Every system is executable, testable, and stress-tested where it matters.
 
 ---
 
-## Repository Structure (WIP)
+## 📦 What’s Inside
+
+Each system lives as an independent module and typically includes:
+
+* 📝 Clear problem definition and constraints
+* 🧠 Key design decisions and assumptions
+* 🦀 / 🐹 Go and/or Rust implementations
+* 🔀 Concurrency and synchronization logic
+* 🧪 Basic tests and load/stress scenarios
+* 🧭 Known limitations and next-step improvements
+
+### Example systems
+
+* 🆔 ID generators
+* 🔗 URL shorteners
+* 🚦 Rate limiters
+* 🗂️ Job queues
+* 🕷️ Web crawlers
+* ⚡ Caching layers
+
+---
+
+## 🗺️ Repository Structure (WIP)
 
 ```text
 /
@@ -56,16 +59,16 @@ Example systems:
 
 ---
 
-## Philosophy
+## 🧠 Engineering Philosophy
 
-* Prefer **simple, explicit code** over clever abstractions
-* Optimize for **clarity before performance**
-* Measure behavior under load instead of guessing
-* Treat failures as first-class design inputs
+* ✍️ Prefer **explicit, readable code** over clever abstractions
+* 🛠️ Optimize for **correctness before performance**
+* 📊 Measure behavior under load instead of guessing
+* 💥 Treat failures as **first-class design inputs**
 
 ---
 
-## Status
+## 🚧 Status
 
-🚧 Actively evolving.
-Systems will be added incrementally and refined over time.
+Actively evolving.
+Systems are added incrementally and refined as complexity and scale increase.
