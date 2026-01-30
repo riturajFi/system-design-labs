@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 	"sync"
+	"web-crawler/internal/content"
 	"web-crawler/internal/dedupe"
 	"web-crawler/internal/fetcher"
 	"web-crawler/internal/filter"
@@ -25,6 +26,8 @@ type Engine struct {
 	prioritizer priority.Prioritizer
 	// robots enforces per-host robots.txt policy.
 	robots robots.Policy
+	// contentDeduper prevents duplicate content processing.
+	contentDeduper content.Deduper
 }
 
 func New(
@@ -35,15 +38,17 @@ func New(
 	flt filter.Filter,
 	prioritizer priority.Prioritizer,
 	robotsPolicy robots.Policy,
+	contentDeduper content.Deduper,
 ) *Engine {
 	return &Engine{
-		fetcher:     fetcher,
-		frontier:    frontier,
-		deduper:     deduper,
-		parser:      parser,
-		filter:      flt,
-		prioritizer: prioritizer,
-		robots:      robotsPolicy,
+		fetcher:        fetcher,
+		frontier:       frontier,
+		deduper:        deduper,
+		parser:         parser,
+		filter:         flt,
+		prioritizer:    prioritizer,
+		robots:         robotsPolicy,
+		contentDeduper: contentDeduper,
 	}
 }
 
@@ -96,6 +101,15 @@ func (e *Engine) worker(id int, workCh <-chan model.CrawlRequest) {
 			e.frontier.Done(req)
 			continue
 		}
+
+		// Hash and dedupe content before parsing.
+		hash := content.Hash(result.Body)
+		if e.contentDeduper.Seen(hash) {
+			fmt.Printf("[worker %d] duplicate content %s\n", id, req.URL)
+			e.frontier.Done(req)
+			continue
+		}
+		e.contentDeduper.Mark(hash)
 
 		fmt.Printf("[worker %d] fetched %s (%d bytes)\n", id, result.URL, len(result.Body))
 

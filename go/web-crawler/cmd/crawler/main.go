@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"web-crawler/internal/content"
 	"web-crawler/internal/dedupe"
 	"web-crawler/internal/engine"
 	"web-crawler/internal/fetcher"
@@ -24,6 +25,8 @@ func main() {
 	// Priority + politeness scheduling lives in the frontier.
 	priorityPoliteFrontier := frontier.NewPriorityPolite()
 	memoryDeduper := dedupe.NewMemory()
+	// Content-level deduper prevents reprocessing identical pages.
+	contentDeduper := content.NewMemory()
 	htmlParser := parser.NewHTMLParser()
 	basicFilter := filter.NewBasicFilter()
 	prioritizer := priority.NewSimple()
@@ -45,6 +48,7 @@ func main() {
 		basicFilter,
 		prioritizer,
 		robotsPolicy,
+		contentDeduper,
 	)
 
 	if err := crawlEngine.Run(); err != nil {
