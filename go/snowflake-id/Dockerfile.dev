@@ -1,0 +1,17 @@
+# Dev-style Dockerfile.
+# - Mirrors local "go run"
+# - Slow startup (compiles on container start)
+# - Larger image (includes the Go toolchain)
+
+FROM golang:1.22
+
+WORKDIR /app
+
+# Copy the whole project (source code) into the container image.
+COPY . .
+
+EXPOSE 8080
+
+# When the container starts, compile+run the server (like local dev).
+CMD ["go", "run", "./cmd/idgen"]
+

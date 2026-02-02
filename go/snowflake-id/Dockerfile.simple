@@ -1,0 +1,20 @@
+# Beginner-friendly single-stage Dockerfile.
+# - Easy to understand
+# - Larger image (includes the Go toolchain)
+
+FROM golang:1.22
+
+WORKDIR /app
+
+# Copy the whole project into the container image.
+COPY . .
+
+# Build the server program into an executable file named "idgen".
+RUN go build -o idgen ./cmd/idgen
+
+# Optional documentation: the server listens on PORT (default 8080 in code).
+EXPOSE 8080
+
+# When the container starts, run the compiled server.
+CMD ["./idgen"]
+

@@ -1,0 +1,22 @@
+# Production-style multi-stage Dockerfile.
+# - Small runtime image (no Go toolchain)
+# - Builds a single binary in a build stage, then copies it into a minimal runtime stage
+
+# syntax=docker/dockerfile:1
+
+FROM golang:1.22 AS build
+
+WORKDIR /src
+
+COPY go.mod ./
+COPY cmd ./cmd
+COPY internal ./internal
+
+RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/idgen ./cmd/idgen
+
+FROM gcr.io/distroless/static:nonroot
+
+COPY --from=build /out/idgen /idgen
+
+ENTRYPOINT ["/idgen"]
+

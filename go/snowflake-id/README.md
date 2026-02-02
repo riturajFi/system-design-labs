@@ -4,10 +4,65 @@ This repo contains a simple **Snowflake-style ID generator** implemented as:
 
 1) a **Go library** (`internal/snowflake`) that generates 64-bit IDs
 2) a **Go HTTP server** (`cmd/idgen`) that returns a new ID on demand
-3) a **Docker image** (via `Dockerfile`) that runs the server in a container
+3) **Dockerfiles** that show different ways to run the server in a container (beginner/dev/prod styles)
 4) a **docker-compose** setup that runs multiple containers (each container = one “machine”)
 
 The key idea: **each container behaves like a separate machine** because we give it a different `MACHINE_ID`.
+
+---
+
+## How To Study This Repo (Recommended Reading Flow)
+
+If you are a beginner, follow this order. Each step builds on the previous one.
+
+### Step 1: Run it locally first (fast feedback)
+
+From `go/snowflake-id/`:
+
+```bash
+MACHINE_ID=1 PORT=8080 go run ./cmd/idgen
+```
+
+In another terminal:
+
+```bash
+curl -s localhost:8080/health
+curl -s localhost:8080/id
+```
+
+Goal: see a working server and confirm you can get IDs back before reading any Docker code.
+
+### Step 2: Read the ID generator (the core logic)
+
+Read: `internal/snowflake/snowflake.go`
+
+What to look for:
+- What state the generator stores (`lastMs`, `seq`, `node`, `epoch`)
+- How an ID is assembled from timestamp + machine_id + sequence
+- Why there is a mutex (it must be safe when many requests happen at once)
+
+Then read: `internal/snowflake/snowflake_test.go`
+
+Goal: understand what “correct” behavior looks like (monotonic IDs, invalid node).
+
+### Step 3: Read the server (how requests become IDs)
+
+Read: `cmd/idgen/main.go`
+
+What to look for:
+- How it reads `MACHINE_ID` and `PORT` from environment variables
+- How `/id` calls the generator and returns JSON
+
+Goal: be able to write your own tiny HTTP endpoint that uses a library.
+
+### Step 4: Read Docker last (packaging + “machines”)
+
+Read Dockerfiles after you understand Steps 1-3:
+- `Dockerfile.dev` (easiest mental model: like local `go run`)
+- `Dockerfile.simple` (build once in the image, then run the built program)
+- `Dockerfile.prod` / `Dockerfile` (production-style: small runtime image)
+
+Goal: understand how containers can run *the same server program* with different `MACHINE_ID`s to act like separate machines.
 
 ---
 
@@ -16,9 +71,36 @@ The key idea: **each container behaves like a separate machine** because we give
 ```
 internal/snowflake/   # Library (ID generator). No Docker/HTTP knowledge.
 cmd/idgen/            # Runnable program (HTTP server) that uses the library.
-Dockerfile            # Builds a small runtime image that runs the server.
+Dockerfile            # Production-style multi-stage build (kept for convenience).
+Dockerfile.prod       # Same idea as Dockerfile: build binary, copy into a small runtime image.
+Dockerfile.simple     # Beginner-friendly: build inside one image (bigger, but simpler).
+Dockerfile.dev        # Beginner-friendly for development: runs `go run` in the container.
 docker-compose.yml    # Runs multiple containers with different MACHINE_IDs.
 ```
+
+---
+
+## The 3 Dockerfiles (Which One Should You Use?)
+
+All of these run the same server (`cmd/idgen`). They differ only in *how* they build/run it.
+
+- `Dockerfile.dev` (learning/dev)
+  - Starts the server by running: `go run ./cmd/idgen`
+  - Easiest to understand (feels like local dev)
+  - Downside: slow container start (it compiles every time)
+
+- `Dockerfile.simple` (learning)
+  - Builds an executable once during `docker build`
+  - Starts the server by running that executable
+  - Downside: bigger image (it still contains Go tools)
+
+- `Dockerfile.prod` (production style)
+  - Uses two stages:
+    1) build the executable using a Go image
+    2) copy only the executable into a minimal runtime image
+  - Upside: smaller, safer runtime image (no Go tools, no source code)
+
+`Dockerfile` is kept as the “default” production-style build so `docker build .` works without extra flags.
 
 ---
 
@@ -81,7 +163,7 @@ This is the runnable program. Instead of printing IDs in a loop, it runs an HTTP
 
 ## Run Locally (No Docker)
 
-From the repo root:
+From `go/snowflake-id/`:
 
 ```bash
 MACHINE_ID=1 PORT=8080 go run ./cmd/idgen
@@ -131,6 +213,26 @@ Call the server:
 
 ```bash
 curl -s localhost:8080/id
+```
+
+### Alternative Dockerfiles
+
+Build with the production Dockerfile explicitly:
+
+```bash
+docker build -f Dockerfile.prod -t snowflake-id:prod .
+```
+
+Build with the beginner-friendly single-stage Dockerfile:
+
+```bash
+docker build -f Dockerfile.simple -t snowflake-id:simple .
+```
+
+Build with the dev-style Dockerfile (runs `go run` at container start):
+
+```bash
+docker build -f Dockerfile.dev -t snowflake-id:dev .
 ```
 
 ---
