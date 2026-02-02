@@ -1,0 +1,31 @@
+services:
+  idgen1:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    environment:
+      MACHINE_ID: "1"
+      PORT: "8000"
+    ports:
+      - "8091:8000"
+
+  idgen2:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    environment:
+      MACHINE_ID: "2"
+      PORT: "8000"
+    ports:
+      - "8092:8000"
+
+  idgen3:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
+    environment:
+      MACHINE_ID: "3"
+      PORT: "8000"
+    ports:
+      - "8093:8000"
+

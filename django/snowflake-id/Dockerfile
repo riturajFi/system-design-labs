@@ -1,0 +1,33 @@
+# Default to the production-style build so `docker build .` works.
+
+# syntax=docker/dockerfile:1
+
+FROM python:3.12-slim AS build
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+COPY requirements.txt .
+
+RUN python -m venv /opt/venv \
+  && /opt/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY --from=build /opt/venv /opt/venv
+COPY --from=build /app /app
+
+EXPOSE 8000
+
+CMD ["sh", "-c", "gunicorn idgen_project.wsgi:application --bind 0.0.0.0:${PORT:-8000} --workers 1 --threads 4 --timeout 30"]
+

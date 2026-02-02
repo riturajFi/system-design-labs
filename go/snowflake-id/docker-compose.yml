@@ -1,20 +1,31 @@
 services:
   idgen1:
-    build: .
+    build:
+      context: .
+      # Pick which Dockerfile to build with:
+      # - Dockerfile.dev    (runs `go run` on container start; slow but simple)
+      # - Dockerfile.simple (single-stage build; easier than prod)
+      # - Dockerfile.prod   (production-style multi-stage build; small runtime)
+      # - Dockerfile        (same idea as prod; default)
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     environment:
       MACHINE_ID: "1"
       PORT: "8080"
     ports:
       - "8081:8080"
   idgen2:
-    build: .
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     environment:
       MACHINE_ID: "2"
       PORT: "8080"
     ports:
       - "8082:8080"
   idgen3:
-    build: .
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile}
     environment:
       MACHINE_ID: "3"
       PORT: "8080"
