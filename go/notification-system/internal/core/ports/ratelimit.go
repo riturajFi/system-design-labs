@@ -7,5 +7,5 @@ import (
 )
 
 type RateLimiter interface {
-	Allow(ctx context.Context, userID int64, channel model.Channel) error
+	Allow(ctx context.Context, userID string, channel model.Channel) error
 }

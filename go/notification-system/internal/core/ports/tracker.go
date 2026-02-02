@@ -7,5 +7,5 @@ import (
 )
 
 type Tracker interface {
-	Track(ctx context.Context, e model.NotificationEvent) error
+	Track(ctx context.Context, ev model.NotificationEvent) error
 }

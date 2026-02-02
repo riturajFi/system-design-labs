@@ -2,7 +2,7 @@ package model
 
 type Notification struct {
 	EventID    string
-	UserID     int64
+	UserID     string
 	Channel    Channel
 	TemplateID string
 	Params     map[string]string

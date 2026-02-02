@@ -12,10 +12,10 @@ const (
 )
 
 type NotificationEvent struct {
-	EventID    string
-	UserID     int64
-	Channel    Channel
-	Type       EventType
-	OccurredAt int64
-	Message    string
+	EventID string
+	UserID  string
+	Channel Channel
+	Type    EventType
+	Message string
+	AtUnix  int64
 }
