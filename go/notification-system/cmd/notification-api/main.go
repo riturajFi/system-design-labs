@@ -1,18 +1,22 @@
 package main
 
 import (
-	"log"
 	"net/http"
 
+	"notification-system/internal/config"
 	"notification-system/internal/core/engine"
+	"notification-system/internal/observability/logging"
 )
 
 func main() {
-	e := engine.New()
+	cfg := config.Load()
+	logger := logging.New(cfg.ServiceName, cfg.Env)
+
+	e := engine.New(cfg, logger)
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", e.Health)
 
-	log.Println("notification-api listening on :8080")
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	logger.Info("starting http server on :" + cfg.HTTPPort)
+	http.ListenAndServe(":"+cfg.HTTPPort, mux)
 }

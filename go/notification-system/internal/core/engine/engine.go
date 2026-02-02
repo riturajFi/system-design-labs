@@ -2,13 +2,21 @@ package engine
 
 import (
 	"net/http"
+
+	"notification-system/internal/config"
+	"notification-system/internal/observability/logging"
 )
 
-type Engine struct {}
+type Engine struct {
+	cfg config.Config
+	logger *logging.Logger
+}
 
-func New() *Engine {
-
-	return &Engine{}
+func New(cfg config.Config, logger *logging.Logger) *Engine {
+	return &Engine{
+		cfg: cfg,
+		logger: logger,
+	}
 }
 
 func (e *Engine) Health(w http.ResponseWriter, _ *http.Request) {
