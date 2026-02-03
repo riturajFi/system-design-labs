@@ -60,6 +60,25 @@ func (w *Worker) Run(ctx context.Context) {
 
 			w.metrics.IncWorkerDequeued()
 
+			// Defensive deduplication (worker-side)
+			exists, err := w.logStore.Exists(ctx, n.EventID)
+			if err != nil {
+				w.logger.Error("logstore error for event " + n.EventID)
+				continue
+			}
+
+			if exists {
+				// Already processed or in-progress
+				w.logger.Info("duplicate event skipped: " + n.EventID)
+				continue
+			}
+
+			// Mark intent before delivery to avoid races
+			if err := w.logStore.Save(ctx, n); err != nil {
+				w.logger.Info("duplicate detected on save: " + n.EventID)
+				continue
+			}
+
 			_, err = w.templates.Render(
 				ctx, 
 				n.TemplateID, 
