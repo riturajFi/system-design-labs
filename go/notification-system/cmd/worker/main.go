@@ -6,13 +6,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"notification-system/internal/config"
+	"notification-system/internal/core/model"
+	logmemory "notification-system/internal/modules/logstore/memory"
+	provideremail "notification-system/internal/modules/providers/email/mock"
+	queuememory "notification-system/internal/modules/queue/memory"
+	retryfixed "notification-system/internal/modules/retry/fixed"
+	templatememory "notification-system/internal/modules/template/memory"
 	"notification-system/internal/observability/logging"
 	"notification-system/internal/observability/metrics"
 	"notification-system/internal/worker"
-
-	queuememory "notification-system/internal/modules/queue/memory"
 )
 
 func main (){
@@ -25,8 +30,29 @@ func main (){
 	// For now, worker and API must share the SAME queue instance
 	// In containers, this becomes Redis or another external queue
 	queue := queuememory.New("email", registry)
+	templates := templatememory.New(map[string]map[model.Channel]templatememory.Template{
+		"welcome": {
+			model.ChannelEmail: {
+				Title: "Welcome {{name}}",
+				Body:  "Hello {{name}}, thanks for joining!",
+			},
+		},
+	})
 
-	w := worker.New("email-worker", queue, logger, registry)
+	provider := provideremail.New(false) // no failure
+	logStore := logmemory.New()
+	retryPolicy := retryfixed.New(3, time.Second)
+
+	w := worker.New(
+		"email-worker",
+		queue,
+		templates,
+		provider,
+		logStore,
+		retryPolicy,
+		logger,
+		registry,
+	)
 
 	ctx, cancel := context.WithCancel(context.Background())
 

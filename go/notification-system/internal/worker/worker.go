@@ -10,23 +10,36 @@ import (
 )
 
 type Worker struct {
-	name    string
-	queue   ports.Queue
-	logger  *logging.Logger
-	metrics *metrics.Registry
+	name     string
+	queue    ports.Queue
+	logger   *logging.Logger
+	metrics  *metrics.Registry
+
+	templates ports.TemplateEngine
+	provider  ports.Provider
+	logStore  ports.LogStore
+	retry     ports.RetryPolicy
 }
 
 func New(
 	name string,
 	queue ports.Queue,
+	templates ports.TemplateEngine,
+	provider ports.Provider,
+	logStore ports.LogStore,
+	retry ports.RetryPolicy,
 	logger *logging.Logger,
 	metrics *metrics.Registry,
 ) *Worker {
 	return &Worker{
-		name:    name,
-		queue:   queue,
-		logger:  logger,
-		metrics: metrics,
+		name:      name,
+		queue:     queue,
+		templates: templates,
+		provider:  provider,
+		logStore:  logStore,
+		retry:     retry,
+		logger:    logger,
+		metrics:   metrics,
 	}
 }
 
@@ -46,6 +59,29 @@ func (w *Worker) Run(ctx context.Context) {
 			}
 
 			w.metrics.IncWorkerDequeued()
+
+			_, err = w.templates.Render(
+				ctx, 
+				n.TemplateID, 
+				n.Channel, 
+				n.Params,
+			)
+
+			if err != nil {
+				continue
+			}
+
+			err = w.provider.Send(ctx, n)
+			if err != nil {
+				decision := w.retry.Decide(0, err)
+				if decision.Retry {
+					time.Sleep(decision.After)
+					_ = w.queue.Enqueue(ctx, n)
+				}
+
+				continue
+			}
+
 			w.logger.Info("dequeued event " + n.EventID)
 		}
 	}
