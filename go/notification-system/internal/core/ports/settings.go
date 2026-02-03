@@ -7,5 +7,5 @@ import (
 )
 
 type SettingsChecker interface {
-	IsOptedIn(ctx context.Context, userID string, channel model.Channel) (bool, error)
+	IsOptedIn(ctx context.Context, userID int64, channel model.Channel) (bool, error)
 }

@@ -13,7 +13,7 @@ const (
 
 type NotificationEvent struct {
 	EventID string
-	UserID  string
+	UserID  int64
 	Channel Channel
 	Type    EventType
 	Message string
