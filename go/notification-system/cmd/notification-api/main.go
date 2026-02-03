@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 
+	"notification-system/cmd/notification-api/handlers"
 	"notification-system/internal/config"
 	"notification-system/internal/core/engine"
 	"notification-system/internal/core/model"
@@ -59,6 +60,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", e.Health)
 	mux.Handle("/metrics", metricsHandler)
+	mux.Handle("/send", handlers.SendHandler(e))
 
 	logger.Info("starting http server on :" + cfg.HTTPPort)
 	http.ListenAndServe(":"+cfg.HTTPPort, mux)
