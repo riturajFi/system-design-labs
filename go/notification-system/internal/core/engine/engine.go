@@ -13,6 +13,7 @@ type Deps struct {
 	Auth      ports.Authenticator
 	RateLimit ports.RateLimiter
 	Settings  ports.SettingsChecker
+	Resolver  ports.Resolver
 	Queue     ports.Queue
 	LogStore  ports.LogStore
 	Tracker   ports.Tracker
