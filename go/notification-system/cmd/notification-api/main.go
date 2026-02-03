@@ -9,6 +9,7 @@ import (
 	authstatic "notification-system/internal/modules/auth/static"
 	contactmemory "notification-system/internal/modules/contact/memory"
 	logmemory "notification-system/internal/modules/logstore/memory"
+	queuememory "notification-system/internal/modules/queue/memory"
 	ratelimitfixed "notification-system/internal/modules/ratelimit/fixed"
 	settingsstatic "notification-system/internal/modules/settings/static"
 	"notification-system/internal/observability/logging"
@@ -42,6 +43,8 @@ func main() {
 	)
 	_ = contactStore
 
+	emailQueue := queuememory.New("email", registry)
+
 	rateLimiter := ratelimitfixed.New(5, registry) // 5 per user/channel/min
 	logStore := logmemory.New()
 
@@ -50,6 +53,7 @@ func main() {
 		RateLimit: rateLimiter,
 		Settings:  settings,
 		LogStore:  logStore,
+		Queue: emailQueue,
 	})
 
 	mux := http.NewServeMux()

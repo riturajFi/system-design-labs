@@ -9,6 +9,7 @@ type Registry struct {
 	healthChecks uint64
 	rateAllowed  uint64
 	rateDenied   uint64
+	queueDepth   map[string]int
 }
 
 func NewRegistry() *Registry {
@@ -33,13 +34,28 @@ func (r *Registry) IncRateDenied() {
 	r.rateDenied++
 }
 
+func (r *Registry) SetQueueDepth(name string, depth int) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.queueDepth == nil {
+		r.queueDepth = make(map[string]int)
+	}
+	r.queueDepth[name] = depth
+}
+
 func (r *Registry) Snapshot() map[string]uint64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	return map[string]uint64{
+	snap := map[string]uint64{
 		"health_checks_total": r.healthChecks,
 		"rate_allowed_total":  r.rateAllowed,
 		"rate_denied_total":   r.rateDenied,
 	}
+
+	for k, v := range r.queueDepth {
+		snap["queue_depth_"+k] = uint64(v)
+	}
+
+	return snap
 }
