@@ -7,6 +7,7 @@ import (
 	"notification-system/internal/core/engine"
 	authstatic "notification-system/internal/modules/auth/static"
 	ratelimitfixed "notification-system/internal/modules/ratelimit/fixed"
+	settingsstatic "notification-system/internal/modules/settings/static"
 	"notification-system/internal/observability/logging"
 	"notification-system/internal/observability/metrics"
 )
@@ -22,11 +23,18 @@ func main() {
 		"demo-app": "demo-secret",
 	})
 
+	settings := settingsstatic.New(map[settingsstatic.Key]bool{
+		{UserID: 1, Channel: "email"}: true,
+		{UserID: 1, Channel: "sms"}:   false,
+	})
+
+
 	rateLimiter := ratelimitfixed.New(5, registry) // 5 per user/channel/min
 
 	e := engine.New(cfg, logger, registry, engine.Deps{
 		Auth:      auth,
 		RateLimit: rateLimiter,
+		Settings: settings,
 	})
 
 	mux := http.NewServeMux()
