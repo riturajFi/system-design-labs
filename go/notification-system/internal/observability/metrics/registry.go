@@ -5,11 +5,12 @@ import (
 )
 
 type Registry struct {
-	mu           sync.Mutex
-	healthChecks uint64
-	rateAllowed  uint64
-	rateDenied   uint64
-	queueDepth   map[string]int
+	mu             sync.Mutex
+	healthChecks   uint64
+	rateAllowed    uint64
+	rateDenied     uint64
+	queueDepth     map[string]int
+	workerDequeued uint64
 }
 
 func NewRegistry() *Registry {
@@ -43,14 +44,21 @@ func (r *Registry) SetQueueDepth(name string, depth int) {
 	r.queueDepth[name] = depth
 }
 
+func (r *Registry) IncWorkerDequeued() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.workerDequeued++
+}
+
 func (r *Registry) Snapshot() map[string]uint64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	snap := map[string]uint64{
-		"health_checks_total": r.healthChecks,
-		"rate_allowed_total":  r.rateAllowed,
-		"rate_denied_total":   r.rateDenied,
+		"health_checks_total":   r.healthChecks,
+		"rate_allowed_total":    r.rateAllowed,
+		"rate_denied_total":     r.rateDenied,
+		"worker_dequeued_total": r.workerDequeued,
 	}
 
 	for k, v := range r.queueDepth {
