@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"notification-system/internal/core/model"
 	"notification-system/internal/core/ports"
 	"notification-system/internal/observability/logging"
 	"notification-system/internal/observability/metrics"
@@ -19,6 +20,7 @@ type Worker struct {
 	provider  ports.Provider
 	logStore  ports.LogStore
 	retry     ports.RetryPolicy
+	tracker   ports.Tracker
 }
 
 func New(
@@ -28,6 +30,7 @@ func New(
 	provider ports.Provider,
 	logStore ports.LogStore,
 	retry ports.RetryPolicy,
+	tracker ports.Tracker,
 	logger *logging.Logger,
 	metrics *metrics.Registry,
 ) *Worker {
@@ -38,6 +41,7 @@ func New(
 		provider:  provider,
 		logStore:  logStore,
 		retry:     retry,
+		tracker:   tracker,
 		logger:    logger,
 		metrics:   metrics,
 	}
@@ -96,9 +100,33 @@ func (w *Worker) Run(ctx context.Context) {
 				if decision.Retry {
 					time.Sleep(decision.After)
 					_ = w.queue.Enqueue(ctx, n)
+				} else {
+					trackErr := w.tracker.Track(ctx, model.NotificationEvent{
+						EventID: n.EventID,
+						UserID:  n.UserID,
+						Channel: n.Channel,
+						Type:    model.EventError,
+						Message: err.Error(),
+						AtUnix:  time.Now().Unix(),
+					})
+					if trackErr != nil {
+						w.metrics.IncTrackingFailed()
+					}
 				}
 
 				continue
+			}
+
+			trackErr := w.tracker.Track(ctx, model.NotificationEvent{
+				EventID: n.EventID,
+				UserID:  n.UserID,
+				Channel: n.Channel,
+				Type:    model.EventSent,
+				Message: "sent",
+				AtUnix:  time.Now().Unix(),
+			})
+			if trackErr != nil {
+				w.metrics.IncTrackingFailed()
 			}
 
 			w.logger.Info("dequeued event " + n.EventID)

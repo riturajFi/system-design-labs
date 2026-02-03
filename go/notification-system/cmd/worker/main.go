@@ -15,6 +15,7 @@ import (
 	queuememory "notification-system/internal/modules/queue/memory"
 	retryfixed "notification-system/internal/modules/retry/fixed"
 	templatememory "notification-system/internal/modules/template/memory"
+	httptracker "notification-system/internal/modules/tracking/http"
 	"notification-system/internal/observability/logging"
 	"notification-system/internal/observability/metrics"
 	"notification-system/internal/worker"
@@ -39,9 +40,10 @@ func main (){
 		},
 	})
 
-	provider := provideremail.New(false) // no failure
+	provider := provideremail.New(true) // no failure
 	logStore := logmemory.New()
 	retryPolicy := retryfixed.New(3, time.Second)
+	tracker := httptracker.New("http://localhost:8090/ingest")
 
 	w := worker.New(
 		"email-worker",
@@ -50,6 +52,7 @@ func main (){
 		provider,
 		logStore,
 		retryPolicy,
+		tracker,
 		logger,
 		registry,
 	)

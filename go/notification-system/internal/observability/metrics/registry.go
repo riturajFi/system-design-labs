@@ -11,6 +11,8 @@ type Registry struct {
 	rateDenied     uint64
 	queueDepth     map[string]int
 	workerDequeued uint64
+	trackingEmitted uint64
+	trackingFailed  uint64
 }
 
 func NewRegistry() *Registry {
@@ -50,15 +52,29 @@ func (r *Registry) IncWorkerDequeued() {
 	r.workerDequeued++
 }
 
+func (r *Registry) IncTrackingEmitted() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.trackingEmitted++
+}
+
+func (r *Registry) IncTrackingFailed() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.trackingFailed++
+}
+
 func (r *Registry) Snapshot() map[string]uint64 {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	snap := map[string]uint64{
-		"health_checks_total":   r.healthChecks,
-		"rate_allowed_total":    r.rateAllowed,
-		"rate_denied_total":     r.rateDenied,
-		"worker_dequeued_total": r.workerDequeued,
+		"health_checks_total":    r.healthChecks,
+		"rate_allowed_total":     r.rateAllowed,
+		"rate_denied_total":      r.rateDenied,
+		"worker_dequeued_total":  r.workerDequeued,
+		"tracking_emitted_total": r.trackingEmitted,
+		"tracking_failed_total":  r.trackingFailed,
 	}
 
 	for k, v := range r.queueDepth {
