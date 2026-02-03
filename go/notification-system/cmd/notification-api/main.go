@@ -8,6 +8,7 @@ import (
 	"notification-system/internal/core/model"
 	authstatic "notification-system/internal/modules/auth/static"
 	contactmemory "notification-system/internal/modules/contact/memory"
+	logmemory "notification-system/internal/modules/logstore/memory"
 	ratelimitfixed "notification-system/internal/modules/ratelimit/fixed"
 	settingsstatic "notification-system/internal/modules/settings/static"
 	"notification-system/internal/observability/logging"
@@ -42,11 +43,13 @@ func main() {
 	_ = contactStore
 
 	rateLimiter := ratelimitfixed.New(5, registry) // 5 per user/channel/min
+	logStore := logmemory.New()
 
 	e := engine.New(cfg, logger, registry, engine.Deps{
 		Auth:      auth,
 		RateLimit: rateLimiter,
 		Settings:  settings,
+		LogStore:  logStore,
 	})
 
 	mux := http.NewServeMux()
