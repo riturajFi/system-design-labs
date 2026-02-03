@@ -5,7 +5,9 @@ import (
 
 	"notification-system/internal/config"
 	"notification-system/internal/core/engine"
+	"notification-system/internal/core/model"
 	authstatic "notification-system/internal/modules/auth/static"
+	contactmemory "notification-system/internal/modules/contact/memory"
 	ratelimitfixed "notification-system/internal/modules/ratelimit/fixed"
 	settingsstatic "notification-system/internal/modules/settings/static"
 	"notification-system/internal/observability/logging"
@@ -28,13 +30,23 @@ func main() {
 		{UserID: 1, Channel: "sms"}:   false,
 	})
 
+	contactStore := contactmemory.New(
+		[]model.User{
+			{ID: 1, Email: "user1@example.com", PhoneNumber: "+1234567890"},
+		},
+		[]model.Device{
+			{ID: 1, UserID: 1, Token: "ios-token-1", Platform: model.ChannelPushIOS},
+			{ID: 2, UserID: 1, Token: "android-token-1", Platform: model.ChannelPushAndroid},
+		},
+	)
+	_ = contactStore
 
 	rateLimiter := ratelimitfixed.New(5, registry) // 5 per user/channel/min
 
 	e := engine.New(cfg, logger, registry, engine.Deps{
 		Auth:      auth,
 		RateLimit: rateLimiter,
-		Settings: settings,
+		Settings:  settings,
 	})
 
 	mux := http.NewServeMux()
