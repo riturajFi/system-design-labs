@@ -4,4 +4,5 @@ use (
 	./go/notification-system
 	./go/newsfeed
 	./go/snowflake-id
+	./go/urlshortener
 )
