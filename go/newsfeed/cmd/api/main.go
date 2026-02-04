@@ -11,22 +11,16 @@ import (
 	"time"
 
 	"newsfeed/internal/auth"
+	"newsfeed/internal/ratelimit"
 )
 
-/*
-logging middleware (unchanged)
-*/
+/* ---------- logging ---------- */
+
 func loggingMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-
-		lrw := &loggingResponseWriter{
-			ResponseWriter: w,
-			statusCode:     http.StatusOK,
-		}
-
+		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: 200}
 		next.ServeHTTP(lrw, r)
-
 		fmt.Printf(
 			"req method=%s path=%s status=%d latency_ms=%d\n",
 			r.Method,
@@ -47,12 +41,12 @@ func (l *loggingResponseWriter) WriteHeader(code int) {
 	l.ResponseWriter.WriteHeader(code)
 }
 
-/*
-auth middleware
-*/
+/* ---------- auth ---------- */
+
+type ctxUserIDKey struct{}
+
 func authMiddleware(a auth.Authenticator, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// allow health without auth
 		if r.URL.Path == "/health" {
 			next.ServeHTTP(w, r)
 			return
@@ -64,7 +58,6 @@ func authMiddleware(a auth.Authenticator, next http.Handler) http.Handler {
 			return
 		}
 
-		// expect: Authorization: Bearer token-<userID>
 		parts := strings.SplitN(h, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
 			http.Error(w, "invalid auth header", http.StatusUnauthorized)
@@ -77,13 +70,30 @@ func authMiddleware(a auth.Authenticator, next http.Handler) http.Handler {
 			return
 		}
 
-		// attach userID to context
 		ctx := context.WithValue(r.Context(), ctxUserIDKey{}, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-type ctxUserIDKey struct{}
+/* ---------- rate limit ---------- */
+
+func rateLimitMiddleware(limiter ratelimit.RateLimiter, next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		userID := r.Context().Value(ctxUserIDKey{}).(string)
+
+		if !limiter.Allow(r.Context(), userID) {
+			http.Error(w, "rate limit exceeded", http.StatusTooManyRequests)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
 
 func main() {
 	addr := ":8080"
@@ -91,21 +101,23 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
 
-	// example protected endpoint (temporary)
 	mux.HandleFunc("/whoami", func(w http.ResponseWriter, r *http.Request) {
-		uid := r.Context().Value(ctxUserIDKey{}).(string)
-		w.Write([]byte(uid))
+		w.Write([]byte(r.Context().Value(ctxUserIDKey{}).(string)))
 	})
 
 	authenticator := &auth.MockAuthenticator{}
+	limiter := ratelimit.NewMemoryLimiter(3, 10*time.Second)
 
-	handler := loggingMiddleware(
-		authMiddleware(authenticator, mux),
-	)
+	handler :=
+		loggingMiddleware(
+			authMiddleware(
+				authenticator,
+				rateLimitMiddleware(limiter, mux),
+			),
+		)
 
 	server := &http.Server{
 		Addr:    addr,
@@ -114,17 +126,11 @@ func main() {
 
 	go func() {
 		fmt.Println("api: listening on", addr)
-		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			fmt.Println("api: listen error:", err)
-			os.Exit(1)
-		}
+		server.ListenAndServe()
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	server.Shutdown(ctx)
+	server.Shutdown(context.Background())
 }
