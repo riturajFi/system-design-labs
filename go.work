@@ -2,6 +2,6 @@ go 1.22
 
 use (
 	./go/notification-system
-	./go/newsfeed-system
+	./go/newsfeed
 	./go/snowflake-id
 )
