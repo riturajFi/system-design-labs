@@ -2,8 +2,8 @@
 
 **Real systems. Real code. Real trade-offs.**
 
-🚀 Hands-on implementations of real-world system design problems in **Go** and **Rust**.
-This repo focuses on building **production-oriented backend and distributed systems** from first principles — no diagrams without code, no theory without execution.
+🚀 Hands-on implementations of real-world system design problems in **Go**, **Rust**, and **Django**.
+This repo focuses on building **production-oriented backend and distributed systems** from first principles - no diagrams without code, no theory without execution.
 
 ---
 
@@ -38,6 +38,7 @@ Each system lives as an independent module and typically includes:
 * 🗂️ Job queues
 * 🕷️ Web crawlers
 * ⚡ Caching layers
+* 🧭 Scaling and replication labs
 
 ---
 
@@ -49,6 +50,9 @@ Each system lives as an independent module and typically includes:
 │   ├── id-generator/
 │   ├── url-shortener/
 │   └── ...
+├── django/
+│   ├── snowflake-id/
+│   └── scaling-concepts/
 ├── rust/
 │   ├── id-generator/
 │   ├── rate-limiter/

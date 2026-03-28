@@ -1,0 +1,84 @@
+services:
+  db-primary:
+    image: bitnami/postgresql:latest
+    environment:
+      POSTGRESQL_USERNAME: app
+      POSTGRESQL_PASSWORD: app_password
+      POSTGRESQL_DATABASE: scaling_concepts
+      POSTGRESQL_POSTGRES_PASSWORD: postgres_password
+      POSTGRESQL_REPLICATION_MODE: master
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_password
+    volumes:
+      - pg_primary:/bitnami/postgresql
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+  db-replica-1:
+    image: bitnami/postgresql:latest
+    environment:
+      POSTGRESQL_USERNAME: app
+      POSTGRESQL_PASSWORD: app_password
+      POSTGRESQL_DATABASE: scaling_concepts
+      POSTGRESQL_POSTGRES_PASSWORD: postgres_password
+      POSTGRESQL_REPLICATION_MODE: slave
+      POSTGRESQL_MASTER_HOST: db-primary
+      POSTGRESQL_MASTER_PORT_NUMBER: 5432
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_password
+    depends_on:
+      - db-primary
+    volumes:
+      - pg_replica_1:/bitnami/postgresql
+
+  db-replica-2:
+    image: bitnami/postgresql:latest
+    environment:
+      POSTGRESQL_USERNAME: app
+      POSTGRESQL_PASSWORD: app_password
+      POSTGRESQL_DATABASE: scaling_concepts
+      POSTGRESQL_POSTGRES_PASSWORD: postgres_password
+      POSTGRESQL_REPLICATION_MODE: slave
+      POSTGRESQL_MASTER_HOST: db-primary
+      POSTGRESQL_MASTER_PORT_NUMBER: 5432
+      POSTGRESQL_REPLICATION_USER: repl_user
+      POSTGRESQL_REPLICATION_PASSWORD: repl_password
+    depends_on:
+      - db-primary
+    volumes:
+      - pg_replica_2:/bitnami/postgresql
+
+  web-1:
+    build: .
+    depends_on:
+      - db-primary
+      - db-replica-1
+      - db-replica-2
+      - redis
+
+  web-2:
+    build: .
+    depends_on:
+      - db-primary
+      - db-replica-1
+      - db-replica-2
+      - redis
+
+  lb:
+    image: haproxy:2.9
+    ports:
+      - "8000:80"
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - web-1
+      - web-2
+
+volumes:
+  pg_primary:
+  pg_replica_1:
+  pg_replica_2:
+  redis_data:

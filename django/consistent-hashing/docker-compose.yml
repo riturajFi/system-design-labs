@@ -1,0 +1,39 @@
+version: "3.9"
+
+services:
+  redis1:
+    image: redis:7-alpine
+    container_name: consistent-hashing-redis1
+    ports:
+      - "6379:6379"
+
+  redis2:
+    image: redis:7-alpine
+    container_name: consistent-hashing-redis2
+    ports:
+      - "6380:6379"
+
+  redis3:
+    image: redis:7-alpine
+    container_name: consistent-hashing-redis3
+    ports:
+      - "6381:6379"
+
+  redis4:
+    image: redis:7-alpine
+    container_name: consistent-hashing-redis4
+    ports:
+      - "6382:6379"
+
+  router:
+    build: ./app
+    container_name: consistent-hashing-router
+    depends_on:
+      - redis1
+      - redis2
+      - redis3
+      - redis4
+    volumes:
+      - ./app:/app
+    working_dir: /app
+    tty: true
