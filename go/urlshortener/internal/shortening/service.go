@@ -41,6 +41,13 @@ func (s *Service) Shorten(ctx context.Context, longURL domain.LongURL) (domain.S
 	shortURL := base62.Encode(id)
 
 	if err := s.repo.Save(ctx, id, shortURL, longURL); err != nil {
+		existing, lookupErr := s.repo.GetByLongURL(ctx, longURL)
+		if lookupErr != nil {
+			return "", fmt.Errorf("repo save: %w; repo get by long url after save failure: %v", err, lookupErr)
+		}
+		if existing != nil {
+			return *existing, nil
+		}
 		return "", fmt.Errorf("repo save: %w", err)
 	}
 

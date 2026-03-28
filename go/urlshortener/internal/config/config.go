@@ -1,28 +1,30 @@
 package config
 
 import (
-	"fmt"
 	"os"
+	"strings"
 )
 
 type Config struct {
 	ServiceName string
 	Port        string
+	BaseURL     string
 }
 
 func Load() (*Config, error) {
 	serviceName := os.Getenv("SERVICE_NAME")
 	if serviceName == "" {
-		return nil, fmt.Errorf("SERVICE_NAME is required")
+		serviceName = "urlshortener"
 	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		return nil, fmt.Errorf("PORT is required")
+		port = "8080"
 	}
 
 	return &Config{
 		ServiceName: serviceName,
 		Port:        port,
+		BaseURL:     strings.TrimRight(strings.TrimSpace(os.Getenv("BASE_URL")), "/"),
 	}, nil
 }

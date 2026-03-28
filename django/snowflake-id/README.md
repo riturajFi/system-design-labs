@@ -28,12 +28,20 @@ Look for:
 ### Step 2: Read the Django server (how requests become IDs)
 
 Read:
-- `idgen_app/views.py` (endpoints)
+- `internal/http/views.py` (endpoints)
+- `internal/service/id_service.py` (generator wiring)
 - `idgen_project/urls.py` (URL routing)
 
 Look for:
 - how `MACHINE_ID` is read from the environment
 - how `/id` calls the generator and returns JSON
+
+### Step 2.5: Notice the layout
+
+- `cmd/idgen/main.py` keeps the runnable entrypoint tiny
+- `internal/config/` reads environment
+- `internal/service/` wires the generator
+- `internal/http/` keeps the request layer thin
 
 ### Step 3: Read Docker last (packaging + "machines")
 

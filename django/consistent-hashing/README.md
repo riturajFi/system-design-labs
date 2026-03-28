@@ -11,18 +11,13 @@ Small Docker-based learning project for:
 
 ```text
 consistent-hashing/
+├── cmd/
+├── internal/
 ├── docker-compose.yml
 └── app/
     ├── Dockerfile
     ├── requirements.txt
-    ├── modulo_router.py
-    ├── basic_consistent_router.py
-    ├── vnode_consistent_router.py
-    ├── rebalance.py
-    ├── demo_modulo.py
-    ├── demo_basic.py
-    ├── demo_vnodes.py
-    └── demo_basic_remove.py
+    └── compatibility shims
 ```
 
 ## Run
@@ -37,10 +32,10 @@ docker compose exec router bash
 Then inside the router container:
 
 ```bash
-python demo_modulo.py
-python demo_basic.py
-python demo_vnodes.py
-python demo_basic_remove.py
+python -m cmd.demo_modulo
+python -m cmd.demo_basic
+python -m cmd.demo_vnodes
+python -m cmd.demo_basic_remove
 ```
 
 ## Manual Redis Inspection

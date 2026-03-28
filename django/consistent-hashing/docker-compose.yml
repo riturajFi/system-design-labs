@@ -26,7 +26,9 @@ services:
       - "6382:6379"
 
   router:
-    build: ./app
+    build:
+      context: .
+      dockerfile: app/Dockerfile
     container_name: consistent-hashing-router
     depends_on:
       - redis1
@@ -34,6 +36,6 @@ services:
       - redis3
       - redis4
     volumes:
-      - ./app:/app
-    working_dir: /app
+      - .:/workspace
+    working_dir: /workspace
     tty: true

@@ -57,29 +57,49 @@ func (g *Generator) NextID() (uint64, error) {
 	g.mu.Lock()
 	defer g.mu.Unlock()
 
+	// Measure time in milliseconds from the custom epoch.
 	nowMs := time.Since(g.epoch).Milliseconds()
 	if nowMs < 0 {
 		return 0, ErrEpochInFuture
 	}
 
+	// Reject IDs if the observed clock goes backwards.
 	if nowMs < g.lastMs {
 		return 0, ErrClockWentBack
 	}
 
 	if nowMs == g.lastMs {
+		// Same millisecond: advance the per-millisecond sequence.
 		g.seq = (g.seq + 1) & maxSeq
 		if g.seq == 0 {
+			// Sequence wrapped, so wait until time moves to the next millisecond.
 			for nowMs <= g.lastMs {
 				time.Sleep(200 * time.Microsecond)
 				nowMs = time.Since(g.epoch).Milliseconds()
 			}
 		}
 	} else {
+		// New millisecond: start the sequence from zero again.
 		g.seq = 0
 	}
 
+	// Remember the latest millisecond we used for the next call.
 	g.lastMs = nowMs
+
+	// Keep only the timestamp bits that fit in the Snowflake layout.
 	ts := uint64(nowMs) & ((1 << timestampBits) - 1)
 
+	// Pack timestamp, node id, and sequence into one 64-bit ID.
+	// Example with small made-up values:
+	//   timestamp = 5  -> 101
+	//   node      = 3  -> 11
+	//   seq       = 2  -> 10
+	// After shifting into position:
+	//   timestamp << timeShift  puts timestamp in the high bits
+	//   uint64(g.node) << nodeShift moves node left by 12 bits, so:
+	//   3        = ...000000000011
+	//   3 << 12  = ...0011000000000000
+	// This leaves the lowest 12 bits free for the sequence value.
+	// The final ID is built by OR-ing the three parts together.
 	return (ts << timeShift) | (uint64(g.node) << nodeShift) | uint64(g.seq), nil
 }

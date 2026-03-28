@@ -5,6 +5,8 @@ Minimal Python + Postgres demo.
 What it has:
 
 - `server.py` for the HTTP server, database logic, and cache sync loop
+- `cmd/server/main.py` as the thin entrypoint
+- `internal/` modules for HTTP, storage, cache, config, and background sync
 - one Postgres primary
 - two Postgres replicas
 - one Redis cache
@@ -25,6 +27,18 @@ docker compose up --build
 ```
 
 Open `http://127.0.0.1:8000`.
+
+## Layout
+
+```text
+scaling-concepts/
+├── cmd/server/main.py
+├── internal/cache/
+├── internal/config/
+├── internal/http/
+├── internal/shortener/
+└── internal/worker/
+```
 
 ## Behavior
 

@@ -1,9 +1,9 @@
-PRIMARY_DSN = "postgresql://app:app_password@db-primary:5432/scaling_concepts"
-READ_DSN = "postgresql://app:app_password@lb:5433/scaling_concepts"
-REDIS_URL = "redis://redis:6379/0"
-SYNC_INTERVAL_SECONDS = 30
+from internal.config.settings import PRIMARY_DSN, READ_DSN, REDIS_URL, REPLICA_DSNS, SYNC_INTERVAL_SECONDS
 
-REPLICA_DSNS = [
-    ("replica_1", "postgresql://app:app_password@db-replica-1:5432/scaling_concepts"),
-    ("replica_2", "postgresql://app:app_password@db-replica-2:5432/scaling_concepts"),
+__all__ = [
+    "PRIMARY_DSN",
+    "READ_DSN",
+    "REDIS_URL",
+    "REPLICA_DSNS",
+    "SYNC_INTERVAL_SECONDS",
 ]
