@@ -11,12 +11,20 @@ import (
 
 	"urlshortener/internal/config"
 	"urlshortener/internal/httpapi"
+	"urlshortener/internal/idgen"
 	"urlshortener/internal/idgen/memory"
+	storageidgen "urlshortener/internal/idgen/storage"
 	"urlshortener/internal/observability/logging"
+	"urlshortener/internal/redisclient"
 	"urlshortener/internal/resolution"
 	"urlshortener/internal/shortening"
+	"urlshortener/internal/storage/cache"
 	cachememory "urlshortener/internal/storage/cache/memory"
+	rediscache "urlshortener/internal/storage/cache/redis"
+	"urlshortener/internal/storage/repository"
 	repomemory "urlshortener/internal/storage/repository/memory"
+	remoterepo "urlshortener/internal/storage/repository/remote"
+	"urlshortener/internal/storageclient"
 )
 
 func main() {
@@ -27,9 +35,11 @@ func main() {
 	}
 
 	logger := logging.New(cfg.ServiceName)
-	repo := repomemory.New()
-	cache := cachememory.New()
-	idg := memory.New(0)
+	repo, cache, idg, mode, err := buildDependencies(cfg)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(1)
+	}
 	shortener := shortening.NewService(repo, idg)
 	resolver := resolution.NewService(cache, repo)
 	handler := httpapi.NewHandler(shortener, resolver, cfg.BaseURL)
@@ -44,7 +54,7 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	logger.Info(fmt.Sprintf("service starting on %s", server.Addr))
+	logger.Info(fmt.Sprintf("service starting on %s mode=%s", server.Addr, mode))
 
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
@@ -75,4 +85,19 @@ func main() {
 	if err := server.Shutdown(shutdownCtx); err != nil {
 		logger.Error(fmt.Sprintf("server shutdown failed: %v", err))
 	}
+}
+
+func buildDependencies(cfg *config.Config) (repository.URLRepository, cache.URLCache, idgen.Generator, string, error) {
+	if cfg.RedisAddr == "" && cfg.StorageBaseURL == "" {
+		return repomemory.New(), cachememory.New(), memory.New(0), "memory", nil
+	}
+
+	if cfg.RedisAddr == "" || cfg.StorageBaseURL == "" {
+		return nil, nil, nil, "", fmt.Errorf("REDIS_ADDR and STORAGE_BASE_URL must either both be set or both be empty")
+	}
+
+	cacheClient := redisclient.New(cfg.RedisAddr)
+	storageClient := storageclient.New(cfg.StorageBaseURL)
+
+	return remoterepo.New(storageClient), rediscache.New(cacheClient, "urlshortener:cache:"), storageidgen.New(storageClient), "redis+storage", nil
 }

@@ -1,0 +1,55 @@
+services:
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+
+  storage:
+    build:
+      context: .
+      dockerfile: Dockerfile.storage
+    environment:
+      PORT: "8080"
+      STORAGE_FILE: "/data/mappings.json"
+    volumes:
+      - storage-data:/data
+
+  app1:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile.simple}
+    environment:
+      SERVICE_NAME: "urlshortener"
+      PORT: "8080"
+      BASE_URL: "http://localhost:8080"
+      REDIS_ADDR: "redis:6379"
+      STORAGE_BASE_URL: "http://storage:8080"
+    depends_on:
+      - redis
+      - storage
+
+  app2:
+    build:
+      context: .
+      dockerfile: ${DOCKERFILE:-Dockerfile.simple}
+    environment:
+      SERVICE_NAME: "urlshortener"
+      PORT: "8080"
+      BASE_URL: "http://localhost:8080"
+      REDIS_ADDR: "redis:6379"
+      STORAGE_BASE_URL: "http://storage:8080"
+    depends_on:
+      - redis
+      - storage
+
+  haproxy:
+    image: haproxy:2.9-alpine
+    depends_on:
+      - app1
+      - app2
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./deploy/haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+
+volumes:
+  storage-data:

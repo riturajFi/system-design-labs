@@ -6,9 +6,11 @@ import (
 )
 
 type Config struct {
-	ServiceName string
-	Port        string
-	BaseURL     string
+	ServiceName    string
+	Port           string
+	BaseURL        string
+	RedisAddr      string
+	StorageBaseURL string
 }
 
 func Load() (*Config, error) {
@@ -23,8 +25,10 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		ServiceName: serviceName,
-		Port:        port,
-		BaseURL:     strings.TrimRight(strings.TrimSpace(os.Getenv("BASE_URL")), "/"),
+		ServiceName:    serviceName,
+		Port:           port,
+		BaseURL:        strings.TrimRight(strings.TrimSpace(os.Getenv("BASE_URL")), "/"),
+		RedisAddr:      strings.TrimSpace(os.Getenv("REDIS_ADDR")),
+		StorageBaseURL: strings.TrimRight(strings.TrimSpace(os.Getenv("STORAGE_BASE_URL")), "/"),
 	}, nil
 }

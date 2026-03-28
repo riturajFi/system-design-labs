@@ -18,6 +18,14 @@ class RouterBase:
     def locate_server(self, key: str) -> str:
         raise NotImplementedError
 
+    def add_node(self, server_name: str) -> None:
+        if server_name not in self.server_names:
+            self.server_names.append(server_name)
+
+    def remove_node(self, server_name: str) -> None:
+        if server_name in self.server_names:
+            self.server_names.remove(server_name)
+
     def set(self, key: str, value: str) -> str:
         server = self.locate_server(key)
         self.clients[server].set(key, value)
